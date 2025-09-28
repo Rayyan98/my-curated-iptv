@@ -31,6 +31,101 @@ def parse_m3u_with_metadata(file_path):
     
     return entries
 
+def extract_tvg_id(metadata_lines):
+    """Extract tvg-id from metadata lines"""
+    for line in metadata_lines:
+        if line.startswith('#EXTINF'):
+            # Look for tvg-id="value" pattern
+            match = re.search(r'tvg-id="([^"]*)"', line)
+            if match:
+                return match.group(1)
+    return None
+
+def get_existing_tvg_ids(folder_path):
+    """Get all tvg-ids from M3U files in a folder"""
+    tvg_ids = set()
+    
+    if not os.path.exists(folder_path):
+        return tvg_ids
+    
+    for file in os.listdir(folder_path):
+        if file.endswith(('.m3u', '.m3u8')):
+            file_path = os.path.join(folder_path, file)
+            entries = parse_m3u_with_metadata(file_path)
+            
+            for entry in entries:
+                tvg_id = extract_tvg_id(entry['metadata'])
+                if tvg_id:
+                    tvg_ids.add(tvg_id)
+    
+    return tvg_ids
+
+def filter_duplicates(entries, existing_tvg_ids, quiet=False):
+    """Filter out entries that have tvg-ids already in existing_tvg_ids"""
+    filtered_entries = []
+    duplicate_count = 0
+    
+    for entry in entries:
+        tvg_id = extract_tvg_id(entry['metadata'])
+        
+        if tvg_id and tvg_id in existing_tvg_ids:
+            duplicate_count += 1
+        else:
+            filtered_entries.append(entry)
+    
+    if not quiet and duplicate_count > 0:
+        print(f"  Filtered {duplicate_count} duplicate entries based on tvg-id")
+    
+    return filtered_entries, duplicate_count
+
+def get_source_prefix(filename):
+    """Get readable prefix for source file"""
+    filename_lower = filename.lower()
+    
+    # Mapping of filenames to readable prefixes
+    prefix_map = {
+        'pk.m3u': 'Pakistani',
+        'in.m3u': 'Indian', 
+        'global.m3u': 'Global'
+    }
+    
+    # Check exact matches first
+    if filename in prefix_map:
+        return prefix_map[filename]
+    
+    # Fallback: try partial matches or extract from filename
+    for key, prefix in prefix_map.items():
+        if key in filename_lower:
+            return prefix
+    
+    # Ultimate fallback: capitalize first part of filename
+    base_name = filename.split('.')[0]
+    return base_name.capitalize()
+
+def add_source_prefix_to_group_title(metadata_lines, source_prefix):
+    """Add source prefix to group-title in metadata lines"""
+    modified_lines = []
+    
+    for line in metadata_lines:
+        if line.startswith('#EXTINF') and 'group-title=' in line:
+            # Find and modify group-title
+            import re
+            def replace_group_title(match):
+                current_group = match.group(1)
+                if current_group and not current_group.startswith(source_prefix):
+                    return f'group-title="{source_prefix} {current_group}"'
+                elif not current_group:
+                    return f'group-title="{source_prefix}"'
+                else:
+                    return match.group(0)  # Already has prefix
+            
+            modified_line = re.sub(r'group-title="([^"]*)"', replace_group_title, line)
+            modified_lines.append(modified_line)
+        else:
+            modified_lines.append(line)
+    
+    return modified_lines
+
 def check_url(url, timeout=10, max_retries=3):
     """Check if a URL is accessible with retry logic"""
     headers = {
@@ -116,14 +211,19 @@ def process_single_file(file_path, timeout=10, max_retries=3, max_workers=20, qu
             url, status, status_code = future.result()
             completed_count += 1
             
-            # Show progress for large files
-            if not quiet and total_count > 50 and completed_count % 20 == 0:
+            # Show progress every 5 completions for better UX
+            if not quiet and completed_count % 5 == 0:
                 progress = (completed_count / total_count) * 100
                 print(f"    Progress: {completed_count}/{total_count} ({progress:.1f}%)")
             
             if "Working" in status:
                 # Add source file info to entry
                 entry['source_file'] = os.path.basename(file_path)
+                
+                # Add source prefix to group-title
+                source_prefix = get_source_prefix(entry['source_file'])
+                entry['metadata'] = add_source_prefix_to_group_title(entry['metadata'], source_prefix)
+                
                 working_entries.append(entry)
     
     # Sort by original order
@@ -133,11 +233,12 @@ def process_single_file(file_path, timeout=10, max_retries=3, max_workers=20, qu
 def main():
     parser = argparse.ArgumentParser(description='Check M3U playlist URLs and create filtered playlist')
     parser.add_argument('input_path', help='Input M3U file or folder containing M3U files')
-    parser.add_argument('-o', '--output', help='Output file for working entries (default: main_working.m3u)')
+    parser.add_argument('-o', '--output', help='Output file for working entries (default: auto-detect based on input)')
     parser.add_argument('-w', '--workers', type=int, default=20, help='Number of worker threads (default: 20)')
     parser.add_argument('-t', '--timeout', type=int, default=10, help='Request timeout in seconds (default: 10)')
     parser.add_argument('-r', '--retries', type=int, default=3, help='Max retries for failed URLs (default: 3)')
     parser.add_argument('-q', '--quiet', action='store_true', help='Suppress detailed output')
+    parser.add_argument('--filter-duplicates', help='Path to folder containing M3U files to filter duplicates against')
     
     args = parser.parse_args()
     
@@ -171,7 +272,9 @@ def main():
         if args.output:
             output_file = args.output
         else:
-            output_file = "main_working.m3u"
+            # Auto-detect output filename based on input folder
+            folder_name = os.path.basename(args.input_path.rstrip('/'))
+            output_file = f"{folder_name}_working.m3u"
     
     if not args.quiet:
         if len(input_files) == 1:
@@ -179,6 +282,15 @@ def main():
         else:
             print(f"Checking URLs in {len(input_files)} M3U files from {args.input_path}...")
         print("=" * 80)
+    
+    # Get existing tvg-ids for duplicate filtering if specified
+    existing_tvg_ids = set()
+    total_filtered_duplicates = 0
+    
+    if args.filter_duplicates:
+        existing_tvg_ids = get_existing_tvg_ids(args.filter_duplicates)
+        if not args.quiet:
+            print(f"Loaded {len(existing_tvg_ids)} existing tvg-ids for duplicate filtering")
     
     all_working_entries = []
     total_working = 0
@@ -190,7 +302,29 @@ def main():
         if not args.quiet:
             print(f"\nProcessing {os.path.basename(file_path)}...")
         
-        working_entries, file_total = process_single_file(file_path, args.timeout, args.retries, args.workers, args.quiet)
+        # Get all entries from file first
+        all_file_entries = parse_m3u_with_metadata(file_path)
+        
+        # Filter duplicates if specified
+        if args.filter_duplicates:
+            filtered_entries, duplicate_count = filter_duplicates(all_file_entries, existing_tvg_ids, args.quiet)
+            total_filtered_duplicates += duplicate_count
+            
+            # Write filtered entries to temporary file for processing
+            temp_file = f"{file_path}.temp"
+            write_filtered_m3u(filtered_entries, temp_file)
+            
+            # Process the filtered file
+            working_entries, file_total = process_single_file(temp_file, args.timeout, args.retries, args.workers, args.quiet)
+            
+            # Clean up temp file
+            os.remove(temp_file)
+            
+            # Update file_total to reflect original count before filtering
+            original_total = len(all_file_entries)
+            file_total = original_total
+        else:
+            working_entries, file_total = process_single_file(file_path, args.timeout, args.retries, args.workers, args.quiet)
         
         file_working = len(working_entries)
         file_failed = file_total - file_working
@@ -222,6 +356,8 @@ def main():
     print(f"✓ Working URLs: {total_working}")
     print(f"✗ Failed URLs: {total_failed}")
     print(f"Total URLs: {total_entries}")
+    if total_filtered_duplicates > 0:
+        print(f"🔄 Filtered duplicates: {total_filtered_duplicates}")
     print(f"Success Rate: {(total_working/total_entries*100):.1f}%")
     print(f"Consolidated playlist written to: {output_file}")
     

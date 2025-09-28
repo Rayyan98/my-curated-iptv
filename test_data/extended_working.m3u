@@ -1,0 +1,5 @@
+#EXTM3U
+#EXTINF:-1 tvg-id="MockGlobal1" tvg-logo="global1.png" group-title="Global Test",Mock Global 1
+https://httpbin.org/status/200
+#EXTINF:-1 tvg-id="MockGlobal3" tvg-logo="global3.png" group-title="Global Test",Mock Global 3
+https://httpbin.org/status/200
