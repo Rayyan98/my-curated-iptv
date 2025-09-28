@@ -41,42 +41,6 @@ def extract_tvg_id(metadata_lines):
                 return match.group(1)
     return None
 
-def get_existing_tvg_ids(folder_path):
-    """Get all tvg-ids from M3U files in a folder"""
-    tvg_ids = set()
-    
-    if not os.path.exists(folder_path):
-        return tvg_ids
-    
-    for file in os.listdir(folder_path):
-        if file.endswith(('.m3u', '.m3u8')):
-            file_path = os.path.join(folder_path, file)
-            entries = parse_m3u_with_metadata(file_path)
-            
-            for entry in entries:
-                tvg_id = extract_tvg_id(entry['metadata'])
-                if tvg_id:
-                    tvg_ids.add(tvg_id)
-    
-    return tvg_ids
-
-def filter_duplicates(entries, existing_tvg_ids, quiet=False):
-    """Filter out entries that have tvg-ids already in existing_tvg_ids"""
-    filtered_entries = []
-    duplicate_count = 0
-    
-    for entry in entries:
-        tvg_id = extract_tvg_id(entry['metadata'])
-        
-        if tvg_id and tvg_id in existing_tvg_ids:
-            duplicate_count += 1
-        else:
-            filtered_entries.append(entry)
-    
-    if not quiet and duplicate_count > 0:
-        print(f"  Filtered {duplicate_count} duplicate entries based on tvg-id")
-    
-    return filtered_entries, duplicate_count
 
 def get_source_prefix(filename):
     """Get readable prefix for source file"""
@@ -363,7 +327,6 @@ def main():
     parser.add_argument('-t', '--timeout', type=int, default=10, help='Request timeout in seconds (default: 10)')
     parser.add_argument('-r', '--retries', type=int, default=3, help='Max retries for failed URLs (default: 3)')
     parser.add_argument('-q', '--quiet', action='store_true', help='Suppress detailed output')
-    parser.add_argument('--filter-duplicates', help='Path to folder containing M3U files to filter duplicates against')
     
     args = parser.parse_args()
     
@@ -408,41 +371,11 @@ def main():
             print(f"Checking URLs in {len(input_files)} M3U files from {args.input_path}...")
         print("=" * 80)
     
-    # Handle external duplicate filtering if specified
-    existing_tvg_ids = set()
-    total_filtered_duplicates = 0
-    files_to_process = input_files.copy()
-    
-    if args.filter_duplicates:
-        existing_tvg_ids = get_existing_tvg_ids(args.filter_duplicates)
-        if not args.quiet:
-            print(f"Loaded {len(existing_tvg_ids)} existing tvg-ids for external duplicate filtering")
-        
-        # Filter each file separately against external duplicates, then process together
-        filtered_files = []
-        for file_path in input_files:
-            all_file_entries = parse_m3u_with_metadata(file_path)
-            filtered_entries, duplicate_count = filter_duplicates(all_file_entries, existing_tvg_ids, args.quiet)
-            total_filtered_duplicates += duplicate_count
-            
-            # Write filtered entries to temporary file
-            temp_file = f"{file_path}.temp"
-            write_filtered_m3u(filtered_entries, temp_file)
-            filtered_files.append(temp_file)
-        
-        files_to_process = filtered_files
-    
-    # Process all files with cross-file tvg-id grouping (always enabled)
+    # Process all files with cross-file tvg-id grouping
     if not args.quiet:
         print(f"\nProcessing all files with cross-file channel grouping...")
     
-    all_working_entries, total_entries = process_all_files(files_to_process, args.timeout, args.retries, args.workers, args.quiet)
-    
-    # Clean up temp files if external duplicate filtering was used
-    if args.filter_duplicates:
-        for temp_file in files_to_process:
-            if os.path.exists(temp_file):
-                os.remove(temp_file)
+    all_working_entries, total_entries = process_all_files(input_files, args.timeout, args.retries, args.workers, args.quiet)
     
     total_working = len(all_working_entries)
     total_failed = total_entries - total_working
@@ -463,8 +396,6 @@ def main():
     print(f"✓ Working URLs: {total_working}")
     print(f"✗ Failed URLs: {total_failed}")
     print(f"Total URLs: {total_entries}")
-    if total_filtered_duplicates > 0:
-        print(f"🔄 Filtered duplicates: {total_filtered_duplicates}")
     print(f"Success Rate: {(total_working/total_entries*100):.1f}%")
     print(f"Consolidated playlist written to: {output_file}")
     

@@ -60,10 +60,10 @@ $(MAIN_OUTPUT): $(MAIN_DIR)/*.m3u $(CHECKER_SCRIPT) $(VENV_ACTIVATE)
 	. $(VENV_ACTIVATE) && $(PYTHON) $(CHECKER_SCRIPT) $(MAIN_DIR) --quiet -w 30 -t 5
 	@echo "Main playlist generated: $(MAIN_OUTPUT)"
 
-# Generate working playlist from extended folder (with duplicate filtering)
-$(EXTENDED_OUTPUT): $(EXTENDED_DIR)/*.m3u $(MAIN_DIR)/*.m3u $(CHECKER_SCRIPT) $(VENV_ACTIVATE)
-	@echo "Processing extended playlists (filtering duplicates from main)..."
-	. $(VENV_ACTIVATE) && $(PYTHON) $(CHECKER_SCRIPT) $(EXTENDED_DIR) --quiet -w 30 -t 5 --filter-duplicates $(MAIN_DIR)
+# Generate working playlist from extended folder
+$(EXTENDED_OUTPUT): $(EXTENDED_DIR)/*.m3u $(CHECKER_SCRIPT) $(VENV_ACTIVATE)
+	@echo "Processing extended playlists..."
+	. $(VENV_ACTIVATE) && $(PYTHON) $(CHECKER_SCRIPT) $(EXTENDED_DIR) --quiet -w 30 -t 5
 	@echo "Extended playlist generated: $(EXTENDED_OUTPUT)"
 
 # Individual targets for convenience
@@ -82,8 +82,8 @@ main-verbose: $(VENV_ACTIVATE)
 # Process extended with verbose output  
 .PHONY: extended-verbose
 extended-verbose: $(VENV_ACTIVATE)
-	@echo "Processing extended playlists (verbose, filtering duplicates from main)..."
-	. $(VENV_ACTIVATE) && $(PYTHON) $(CHECKER_SCRIPT) $(EXTENDED_DIR) -w 50 -t 5 --filter-duplicates $(MAIN_DIR)
+	@echo "Processing extended playlists (verbose)..."
+	. $(VENV_ACTIVATE) && $(PYTHON) $(CHECKER_SCRIPT) $(EXTENDED_DIR) -w 50 -t 5
 
 
 
@@ -110,7 +110,7 @@ help:
 	@echo "Available targets:"
 	@echo "  all          - Generate both main and extended playlists (default)"
 	@echo "  main         - Generate main playlist only (Pakistani + Indian)"
-	@echo "  extended     - Generate extended playlist only (Global, minus duplicates)"
+	@echo "  extended     - Generate extended playlist only (Global)"
 	@echo "  download     - Download all source playlists from IPTV-org"
 	@echo "  fresh        - Clean, download, and process (complete refresh)"
 	@echo "  main-verbose - Process main with verbose output"

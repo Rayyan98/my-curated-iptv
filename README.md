@@ -23,7 +23,6 @@ https://raw.githubusercontent.com/Rayyan98/my-curated-iptv/refs/heads/main/real_
 ```
 - **6,058 verified channels** from around the world
 - Comprehensive international coverage including US, UK, European, Asian, and other global channels
-- Excludes duplicate channels already present in the main playlist
 - Group titles prefixed with "Global" for easy identification
 - Includes diverse categories: news, sports, movies, documentaries, kids, music, and more
 
@@ -62,8 +61,8 @@ These M3U playlists work with any standard IPTV application including:
 Playlists are automatically verified and updated to ensure:
 - ✅ All URLs are tested and working
 - ✅ Dead links are removed
-- ✅ Duplicate channels are consolidated
 - ✅ Multiple backup URLs per channel are tested
+- ✅ Cross-file channel consolidation by tvg-id
 - ✅ Source prefixes help organize content
 
 ---
@@ -98,7 +97,6 @@ The `check_playlist.py` script accepts these parameters:
 - **`-t, --timeout`**: Request timeout in seconds (default: 10)
 - **`-r, --retries`**: Max retries for failed URLs (default: 3)
 - **`-q, --quiet`**: Suppress detailed output
-- **`--filter-duplicates`**: External duplicate filtering against another folder
 
 ### Project Structure
 
@@ -179,7 +177,7 @@ GLOBAL_URL = https://iptv-org.github.io/iptv/index.m3u
 
 # Processing targets
 main: $(MAIN_OUTPUT)           # Pakistani + Indian channels
-extended: $(EXTENDED_OUTPUT)   # Global channels (minus duplicates)
+extended: $(EXTENDED_OUTPUT)   # Global channels
 main-verbose: ...              # With detailed progress logging
 extended-verbose: ...          # With detailed progress logging
 ```
@@ -194,7 +192,7 @@ extended-verbose: ...          # With detailed progress logging
 |--------|-------------|
 | `all` | Process both main and extended playlists |
 | `main` | Generate main playlist (Pakistani + Indian) |
-| `extended` | Generate extended playlist (Global, minus duplicates) |
+| `extended` | Generate extended playlist (Global) |
 | `main-verbose` | Process main with detailed logging |
 | `extended-verbose` | Process extended with detailed logging |
 | `download` | Download all source playlists from IPTV-org |
@@ -222,10 +220,9 @@ The project implements comprehensive testing using:
 1. **URL Testing**: HTTP status codes, timeouts, retries
 2. **Cross-File Grouping**: Channel consolidation across sources
 3. **Backup URLs**: Multiple URL testing per channel
-4. **Duplicate Filtering**: External duplicate detection
-5. **Source Prefixes**: Group-title formatting
-6. **Parallel Processing**: ThreadPoolExecutor efficiency
-7. **Make System**: Build reproducibility
+4. **Source Prefixes**: Group-title formatting
+5. **Parallel Processing**: ThreadPoolExecutor efficiency
+6. **Make System**: Build reproducibility
 
 ### Data Sources
 

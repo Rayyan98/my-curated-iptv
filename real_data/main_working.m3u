@@ -134,7 +134,7 @@ https://d2lk5u59tns74c.cloudfront.net/out/v1/950fc69666474351bde0a32b9600c804/in
 https://d3qs3d2rkhfqrt.cloudfront.net/out/v1/afd2e335b0ba40eb9bdf1096118c6ede/index.m3u8
 #EXTINF:-1 tvg-id="DDKashir.in@SD" tvg-logo="https://i.imgur.com/1EI4LOf.png" group-title="Indian General",DD Kashir (720p)
 https://cdn-6.pishow.tv/live/16/master.m3u8
-#EXTINF:-1 tvg-id="DDKisan.in@SD" tvg-logo="https://i.imgur.com/x56WJEa.png" group-title="Indian Education;Outdoor",DD Kisan (720p)
+#EXTINF:-1 tvg-id="DDKisan.in@SD" tvg-logo="https://i.imgur.com/x56WJEa.png" group-title="Indian Education Outdoor",DD Kisan (720p)
 https://cdn-6.pishow.tv/live/9/master.m3u8
 #EXTINF:-1 tvg-id="DDMadhyaPradesh.in@SD" tvg-logo="https://i.imgur.com/Z1yIY4M.png" group-title="Indian General",DD Madhya Pradesh (720p)
 https://cdn-1.pishow.tv/live/31/master.m3u8
@@ -244,16 +244,16 @@ https://livetv.newsx.com/itv/itvnetwork7/playlist.m3u8
 https://livetv.newsx.com/itv/itvnetwork9/playlist.m3u8
 #EXTINF:-1 tvg-id="IndiaToday.in" tvg-logo="https://i.postimg.cc/bJ3J8d8z/indiatoday.png" group-title="Indian News",India Today (720p) [Not 24/7]
 https://indiatodaylive.akamaized.net/hls/live/2014320/indiatoday/indiatodaylive/playlist.m3u8
-#EXTINF:-1 tvg-id="IndywoodTV.in" tvg-logo="https://i.ibb.co/jT3NCPp/logo-tv.png" group-title="Indian Movies;News",Indywood TV (720p)
+#EXTINF:-1 tvg-id="IndywoodTV.in" tvg-logo="https://i.ibb.co/jT3NCPp/logo-tv.png" group-title="Indian Movies News",Indywood TV (720p)
 https://43wrzjnpqoxe-hls-live.wmncdn.net/indywood/indywoodtv/index.m3u8
 #EXTINF:-1 tvg-id="INews.in@SD" tvg-logo="https://i.postimg.cc/sfHXNBwm/inews.png" group-title="Indian News",INews (720p)
 https://cdn-1.pishow.tv/live/411/master.m3u8
+#EXTINF:-1 tvg-id="INH24x7.in" tvg-logo="https://i.imgur.com/Es3QiVx.png" group-title="Indian News",INH 24x7 (360p)
+https://7epd6o8edk9b-hls-live.wmncdn.net/inh24/live.stream/playlist.m3u8
 #EXTINF:-1 tvg-id="IsaiAruvi.in@SD" tvg-logo="https://i.imgur.com/yO18FLo.png" group-title="Indian Music",Isai Aruvi (576p)
 https://segment.yuppcdn.net/140622/isaiaruvi/playlist.m3u8
 #EXTINF:-1 tvg-id="IsharaTV.in@SD" tvg-logo="https://i.imgur.com/W5YlC2v.png" group-title="Indian Entertainment",Ishara TV (1080p)
 https://epiconvh.akamaized.net/live/ishaara/master.m3u8
-#EXTINF:-1 tvg-id="IshwarBhaktiTV.in" tvg-logo="https://i.imgur.com/tsPPU1Y.png" group-title="Indian Religious",Ishwar Bhakti TV (720p)
-https://6n3yow8pl9ok-hls-live.5centscdn.com/ishwartvlive/tv.stream/playlist.m3u8
 #EXTINF:-1 tvg-id="JalshaMovies.in@HD" tvg-logo="https://i.imgur.com/25eWjX2.png" group-title="Indian Movies",Jalsha Movies HD (1080p)
 https://live.dinesh29.com.np/stream/jiotvplus/jalshamovieshd/master.m3u8
 #EXTINF:-1 tvg-id="JinvaniChannel.in@SD" tvg-logo="https://i.imgur.com/lztyGVi.png" group-title="Indian Religious",Jinvani Channel (720p)
@@ -437,8 +437,6 @@ https://cdn-3.pishow.tv/live/437/master.m3u8
 http://cdn12.henico.net:8080/live/sadatv/index.m3u8
 #EXTINF:-1 tvg-id="Sadhna.in" tvg-logo="https://i.imgur.com/x13iiuI.png" group-title="Indian Undefined",Sadhna (720p)
 https://6n3yow8pl9ok-hls-live.5centscdn.com/sadhanalivetv/live.stream/playlist.m3u8
-#EXTINF:-1 tvg-id="SadhnaPlusNews.in" tvg-logo="https://i.imgur.com/h4UehKC.png" group-title="Indian News",Sadhna Plus News (720p)
-https://6n3yow8pl9ok-hls-live.5centscdn.com/sadhananewstv/live.stream/playlist.m3u8
 #EXTINF:-1 tvg-id="SafariTV.in" tvg-logo="https://i.imgur.com/dSOfYyh.png" group-title="Indian Undefined",Safari TV (480p) [Not 24/7]
 https://j78dp346yq5r-hls-live.5centscdn.com/safari/live.stream/playlist.m3u8
 #EXTINF:-1 tvg-id="SalvationTV.in@SD" tvg-logo="https://content.jdmagicbox.com/comp/bangalore/l5/080pxx80.xx80.150207120517.e4l5/catalogue/salvation-tv-network-pvt-m-g-road-bangalore-religious-organizations-1sabn2d.jpg" group-title="Indian Religious",Salvation TV (1080p)
@@ -451,7 +449,9 @@ https://galaxyott.live/hls/sanatv.m3u8
 https://cdn-4.pishow.tv/live/1143/master.m3u8
 #EXTINF:-1 tvg-id="SangeetMarathi.in@SD" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Sangeet_Marathi.jpg/512px-Sangeet_Marathi.jpg" group-title="Indian Undefined",Sangeet Marathi (720p)
 https://cdn-3.pishow.tv/live/1229/master.m3u8
-#EXTINF:-1 tvg-id="SanskarTV.in" tvg-logo="https://i.imgur.com/SDkiMvR.png" group-title="Indian Culture;Religious",Sanskar TV (1080p)
+#EXTINF:-1 tvg-id="SansadTV.in" tvg-logo="https://i.imgur.com/TWSZC2H.png" group-title="Indian Legislative",Sansad TV (1080p) [Not 24/7]
+https://hls.media.nic.in/hls/live/lstv/lstv.m3u8
+#EXTINF:-1 tvg-id="SanskarTV.in" tvg-logo="https://i.imgur.com/SDkiMvR.png" group-title="Indian Culture Religious",Sanskar TV (1080p)
 https://d26idhjf0y1p2g.cloudfront.net/out/v1/cd66dd25b9774cb29943bab54bbf3e2f/index.m3u8
 #EXTINF:-1 tvg-id="SanskarUK.in" tvg-logo="https://i.imgur.com/AU5vSPF.png" group-title="Indian Undefined",Sanskar UK (1080p)
 https://d34z4embz0hjf6.cloudfront.net/out/v1/7ac2789ff9a544a49337d1ffc54ce61c/index.m3u8
@@ -503,10 +503,6 @@ https://live.dinesh29.com.np/stream/jiotvplus/starbharathd/master.m3u8
 https://live.dinesh29.com.np/stream/jiotvplus/stargoldhd/master.m3u8
 #EXTINF:-1 tvg-id="StarGoldRomance.in@SD" tvg-logo="https://i.imgur.com/gSWv9U3.png" group-title="Indian Movies",Star Gold Romance (576p)
 https://live.dinesh29.com.np/stream/jiotvplus/stargoldromance/master.m3u8
-#EXTINF:-1 tvg-id="StarGoldSelect.in@HD" tvg-logo="https://i.imgur.com/U7eiuqv.png" group-title="Indian Movies",Star Gold Select HD (1080p)
-https://live.dinesh29.com.np/stream/jiotvplus/stargold2hd/master.m3u8
-#EXTINF:-1 tvg-id="StarGoldThrills.in@SD" tvg-logo="https://i.imgur.com/azqtpYh.png" group-title="Indian Movies",Star Gold Thrills (576p)
-http://116.90.120.149:8000/play/a0c0/index.m3u8
 #EXTINF:-1 tvg-id="StarJalsha.in@HD" tvg-logo="https://i.imgur.com/IlufzR5.png" group-title="Indian Entertainment",Star Jalsha HD (1080p)
 https://live.dinesh29.com.np/stream/jiotvplus/starjalshahd/master.m3u8
 #EXTINF:-1 tvg-id="StarMaaGold.in@SD" tvg-logo="https://i.imgur.com/8v4JXYu.png" group-title="Indian Movies",Star Maa Gold (576p)
@@ -515,8 +511,6 @@ https://live.dinesh29.com.np/stream/jiotvplus/maagold/master.m3u8
 https://live.dinesh29.com.np/stream/jiotvplus/maahd/master.m3u8
 #EXTINF:-1 tvg-id="StarMaaMovies.in@HD" tvg-logo="https://i.imgur.com/1rRI95N.png" group-title="Indian Movies",Star Maa Movies HD (1080p)
 https://live.dinesh29.com.np/stream/jiotvplus/maamovieshd/master.m3u8
-#EXTINF:-1 tvg-id="StarMaaMusic.in@SD" tvg-logo="https://i.imgur.com/vxP9L8p.png" group-title="Indian Music",Star Maa Music (576p)
-https://live.dinesh29.com.np/stream/jiotvplus/maamusic/master.m3u8
 #EXTINF:-1 tvg-id="StarMovies.in@HD" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/STAR_Movies_logo.svg/512px-STAR_Movies_logo.svg.png" group-title="Indian Movies",Star Movies HD (1080p)
 https://live.dinesh29.com.np/stream/jiotvplus/starmovieshd/master.m3u8
 #EXTINF:-1 tvg-id="StarMoviesSelect.in@HD" tvg-logo="https://i.imgur.com/bnzDNCF.png" group-title="Indian Movies",Star Movies Select HD (1080p)
@@ -622,6 +616,8 @@ https://playyonogames.in/live.php?id=744&format=.m3u8
 #EXTINF:-1 tvg-id="UdayaTV.in@SD" tvg-logo="https://i.imgur.com/BQfcmJy.png" group-title="Indian Undefined" http-referrer="https://playyonogames.in/",Udaya TV (1080p)
 #EXTVLCOPT:http-referrer=https://playyonogames.in/
 https://playyonogames.in/live.php?id=901&format=.m3u8
+#EXTINF:-1 tvg-id="VaanavilTV.in" tvg-logo="https://i.imgur.com/etr1k08.png" group-title="Indian Music",Vaanavil TV (720p)
+https://6n3yope4d9ok-hls-live.5centscdn.com/vaanavil/TV.stream/playlist.m3u8
 #EXTINF:-1 tvg-id="VanithaTV.in@SD" tvg-logo="https://i.imgur.com/KuLZt2a.png" group-title="Indian Undefined",Vanitha TV (720p)
 https://cdn-1.pishow.tv/live/393/master.m3u8
 #EXTINF:-1 tvg-id="VBCNews.in" tvg-logo="https://i.imgur.com/SvXCjha.png" group-title="Indian News",VBC News (576p)
@@ -638,6 +634,8 @@ https://live.dinesh29.com.np/stream/jiotvplus/vijaysuperhd/master.m3u8
 https://live.dinesh29.com.np/stream/jiotvplus/vijaytakkar/master.m3u8
 #EXTINF:-1 tvg-id="Vision.in" tvg-logo="https://i.imgur.com/YozqNL3.jpg" group-title="Indian General",Vision (1080p)
 http://103.85.204.205:1935/VISIONMEDIA/live/playlist.m3u8
+#EXTINF:-1 tvg-id="VissaTV.in@SD" tvg-logo="https://i.imgur.com/aPirjJ2.png" group-title="Indian Undefined",Vissa TV (1080p) [Not 24/7]
+https://livestream.rajtvnet.in/hlslive/Admin/px08241089/live/Vissa_Tv/master_1.m3u8
 #EXTINF:-1 tvg-id="VyasChannel.in" tvg-logo="" group-title="Indian Education",Vyas NIC (576p)
 https://playhls.media.nic.in/hls/live/vyas/vyas.m3u8
 #EXTINF:-1 tvg-id="WeatherSpy.in" tvg-logo="https://i.imgur.com/KIEKOt1.png" group-title="Indian Weather",Weatherspy
@@ -650,7 +648,7 @@ https://zainabia.livebox.co.in/ZainabiaChannelhls/channel.m3u8
 https://server.zillarbarta.com/zbbhakti/index.m3u8
 #EXTINF:-1 tvg-id="ZBCartoon.in" tvg-logo="https://i.imgur.com/BbFNpMr.jpeg" group-title="Indian Kids",ZB Cartoon (1080p)
 https://server.zillarbarta.com/zbcatun/video.m3u8
-#EXTINF:-1 tvg-id="ZBCinema.in" tvg-logo="https://i.imgur.com/kUg6WSk.jpeg" group-title="Indian Classic;Movies",ZB Cinema (720p)
+#EXTINF:-1 tvg-id="ZBCinema.in" tvg-logo="https://i.imgur.com/kUg6WSk.jpeg" group-title="Indian Classic Movies",ZB Cinema (720p)
 https://server.zillarbarta.com/ZBCINEMA/index.m3u8
 #EXTINF:-1 tvg-id="ZBMusic.in" tvg-logo="https://i.imgur.com/k1nb8u1.jpeg" group-title="Indian Music",ZB Music (720p)
 https://server.zillarbarta.com/zbmusic/index.m3u8
@@ -749,8 +747,6 @@ https://streaming.madanichannel.tv/static/streaming-playlists/hls/c6a600b0-82cb-
 https://streaming.madanichannel.tv/static/streaming-playlists/hls/b9790f10-cb0d-4e30-82bf-84a756234e58/master.m3u8
 #EXTINF:-1 tvg-id="Minimax.pk@SD" tvg-logo="https://i.imgur.com/TJvf8vd.png" group-title="Pakistani Kids",Minimax (576p) [Not 24/7]
 http://116.90.120.149:8000/play/a01c/index.m3u8
-#EXTINF:-1 tvg-id="PeaceTVUrdu.ae" tvg-logo="https://i.postimg.cc/cLCfzgqB/peacetvurdu.png" group-title="Pakistani Religious",Peace TV Urdu (1080p)
-https://dzkyvlfyge.erbvr.com/PeaceTvUrdu/index.m3u8
 #EXTINF:-1 tvg-id="PMITV.pk" tvg-logo="https://i.imgur.com/SfyCwXj.png" group-title="Pakistani Undefined",PMI TV (720p) [Not 24/7]
 https://cdn.live247stream.com/pmi/tv/playlist.m3u8
 #EXTINF:-1 tvg-id="PraiseTV.pk" tvg-logo="https://i.imgur.com/T9fIdLs.png" group-title="Pakistani Undefined",Praise TV (720p)
