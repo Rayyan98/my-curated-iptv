@@ -3,7 +3,7 @@
 https://httpbin.org/status/200
 #EXTINF:-1 tvg-id="MockIN2" tvg-logo="test5.png" group-title="Indian Test",Mock Indian 2
 https://httpbin.org/status/301
-#EXTINF:-1 tvg-id="MockPK1" tvg-logo="test1.png" group-title="Pakistani Test",Mock Pakistani 1
+#EXTINF:-1 tvg-id="MockPK1" tvg-logo="cross_file.png" group-title="Indian Test",Cross-file MockPK1 (should be additional URL)
 https://httpbin.org/status/200
 #EXTINF:-1 tvg-id="MockPK2" tvg-logo="test2.png" group-title="Pakistani Test",Mock Pakistani 2
 https://httpbin.org/delay/1

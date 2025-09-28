@@ -181,6 +181,62 @@ def check_url(url, timeout=10, max_retries=3):
     # Fallback (should not reach here)
     return url, f"✗ Failed after {max_retries} tries ({last_error})", None
 
+def group_entries_by_tvg_id(entries):
+    """Group entries by tvg-id, preserving order and metadata"""
+    tvg_groups = {}
+    
+    for entry in entries:
+        tvg_id = extract_tvg_id(entry['metadata'])
+        
+        if tvg_id:
+            if tvg_id not in tvg_groups:
+                tvg_groups[tvg_id] = {
+                    'tvg_id': tvg_id,
+                    'metadata': entry['metadata'],  # Use first occurrence metadata
+                    'urls': [],
+                    'original_index': entry['original_index']
+                }
+            tvg_groups[tvg_id]['urls'].append({
+                'url': entry['url'],
+                'original_index': entry['original_index'],
+                'source_file': entry.get('source_file', 'unknown')
+            })
+        else:
+            # Handle entries without tvg-id as individual groups
+            unique_key = f"no_tvg_id_{entry['original_index']}"
+            tvg_groups[unique_key] = {
+                'tvg_id': None,
+                'metadata': entry['metadata'],
+                'urls': [{'url': entry['url'], 'original_index': entry['original_index'], 'source_file': entry.get('source_file', 'unknown')}],
+                'original_index': entry['original_index']
+            }
+    
+    return tvg_groups
+
+def check_urls_for_group(group_data, timeout=10, max_retries=3):
+    """Check URLs for a tvg-id group and return first working URL"""
+    tvg_id = group_data['tvg_id']
+    urls = group_data['urls']
+    
+    # Try URLs in original order
+    for url_data in urls:
+        url = url_data['url']
+        url_result, status, status_code = check_url(url, timeout, max_retries)
+        
+        if "Working" in status:
+            return {
+                'metadata': group_data['metadata'],
+                'url': url,
+                'tvg_id': tvg_id,
+                'original_index': group_data['original_index'],
+                'working_url_index': url_data['original_index'],
+                'total_urls_for_id': len(urls),
+                'status': status
+            }
+    
+    # No working URLs found
+    return None
+
 def write_filtered_m3u(working_entries, output_file):
     """Write working entries to a new M3U file"""
     with open(output_file, 'w', encoding='utf-8') as f:
@@ -192,43 +248,86 @@ def write_filtered_m3u(working_entries, output_file):
             # Write URL
             f.write(entry['url'] + "\n")
 
-def process_single_file(file_path, timeout=10, max_retries=3, max_workers=20, quiet=False):
-    """Process a single M3U file and return working entries with source info"""
-    entries = parse_m3u_with_metadata(file_path)
+def collect_all_entries(input_files):
+    """Collect all entries from multiple files with global indexing"""
+    all_entries = []
+    global_index = 0
+    
+    for file_path in input_files:
+        entries = parse_m3u_with_metadata(file_path)
+        
+        for entry in entries:
+            entry['original_index'] = global_index
+            entry['source_file'] = os.path.basename(file_path)
+            all_entries.append(entry)
+            global_index += 1
+    
+    return all_entries
+
+def process_all_files(input_files, timeout=10, max_retries=3, max_workers=20, quiet=False):
+    """Process multiple M3U files with cross-file tvg-id grouping"""
+    # Collect all entries from all files
+    all_entries = collect_all_entries(input_files)
+    
+    # Group entries by tvg-id across all files
+    tvg_groups = group_entries_by_tvg_id(all_entries)
+    total_groups = len(tvg_groups)
+    total_urls = len(all_entries)
+    
+    if not quiet:
+        unique_channels = sum(1 for group in tvg_groups.values() if group['tvg_id'])
+        no_tvg_entries = sum(1 for group in tvg_groups.values() if not group['tvg_id'])
+        multi_url_channels = sum(1 for group in tvg_groups.values() if len(group['urls']) > 1)
+        cross_file_channels = sum(1 for group in tvg_groups.values() if len(set(url['source_file'] for url in group['urls'] if 'source_file' in url)) > 1)
+        
+        print(f"    Found {unique_channels} unique channels, {no_tvg_entries} entries without tvg-id")
+        print(f"    {multi_url_channels} channels have multiple URLs (backup links)")
+        print(f"    {cross_file_channels} channels span multiple source files")
+        print(f"    Testing {total_groups} channel groups ({total_urls} total URLs) with {max_workers} workers...")
+    
     working_entries = []
     completed_count = 0
-    total_count = len(entries)
-    
-    # Add original index to entries
-    for i, entry in enumerate(entries):
-        entry['original_index'] = i
     
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        future_to_entry = {executor.submit(check_url, entry['url'], timeout, max_retries): entry for entry in entries}
+        future_to_group = {executor.submit(check_urls_for_group, group_data, timeout, max_retries): group_data for group_data in tvg_groups.values()}
         
-        for future in as_completed(future_to_entry):
-            entry = future_to_entry[future]
-            url, status, status_code = future.result()
+        for future in as_completed(future_to_group):
+            group_data = future_to_group[future]
+            result = future.result()
             completed_count += 1
             
             # Show progress every 5 completions for better UX
             if not quiet and completed_count % 5 == 0:
-                progress = (completed_count / total_count) * 100
-                print(f"    Progress: {completed_count}/{total_count} ({progress:.1f}%)")
+                progress = (completed_count / total_groups) * 100
+                print(f"    Progress: {completed_count}/{total_groups} channel groups ({progress:.1f}%)")
             
-            if "Working" in status:
-                # Add source file info to entry
-                entry['source_file'] = os.path.basename(file_path)
+            if result:
+                # Source file info already in entry from collect_all_entries
+                # Add source prefix to group-title using the source file from first working URL
+                working_url_source = None
+                for url_data in group_data['urls']:
+                    if url_data['url'] == result['url']:
+                        working_url_source = url_data.get('source_file', group_data.get('source_file', 'unknown'))
+                        break
                 
-                # Add source prefix to group-title
-                source_prefix = get_source_prefix(entry['source_file'])
-                entry['metadata'] = add_source_prefix_to_group_title(entry['metadata'], source_prefix)
+                if working_url_source:
+                    source_prefix = get_source_prefix(working_url_source)
+                    result['metadata'] = add_source_prefix_to_group_title(result['metadata'], source_prefix)
+                    result['source_file'] = working_url_source
                 
-                working_entries.append(entry)
+                working_entries.append(result)
+    
+    if not quiet:
+        working_channels = len(working_entries)
+        print(f"    Result: {working_channels} working channels from {total_groups} channel groups")
     
     # Sort by original order
     working_entries.sort(key=lambda x: x['original_index'])
-    return working_entries, len(entries)
+    return working_entries, total_urls
+
+def process_single_file(file_path, timeout=10, max_retries=3, max_workers=20, quiet=False):
+    """Process a single M3U file (backward compatibility)"""
+    return process_all_files([file_path], timeout, max_retries, max_workers, quiet)
 
 def main():
     parser = argparse.ArgumentParser(description='Check M3U playlist URLs and create filtered playlist')
@@ -283,62 +382,44 @@ def main():
             print(f"Checking URLs in {len(input_files)} M3U files from {args.input_path}...")
         print("=" * 80)
     
-    # Get existing tvg-ids for duplicate filtering if specified
+    # Handle external duplicate filtering if specified
     existing_tvg_ids = set()
     total_filtered_duplicates = 0
+    files_to_process = input_files.copy()
     
     if args.filter_duplicates:
         existing_tvg_ids = get_existing_tvg_ids(args.filter_duplicates)
         if not args.quiet:
-            print(f"Loaded {len(existing_tvg_ids)} existing tvg-ids for duplicate filtering")
-    
-    all_working_entries = []
-    total_working = 0
-    total_failed = 0
-    total_entries = 0
-    
-    # Process each file
-    for file_path in input_files:
-        if not args.quiet:
-            print(f"\nProcessing {os.path.basename(file_path)}...")
+            print(f"Loaded {len(existing_tvg_ids)} existing tvg-ids for external duplicate filtering")
         
-        # Get all entries from file first
-        all_file_entries = parse_m3u_with_metadata(file_path)
-        
-        # Filter duplicates if specified
-        if args.filter_duplicates:
+        # Filter each file separately against external duplicates, then process together
+        filtered_files = []
+        for file_path in input_files:
+            all_file_entries = parse_m3u_with_metadata(file_path)
             filtered_entries, duplicate_count = filter_duplicates(all_file_entries, existing_tvg_ids, args.quiet)
             total_filtered_duplicates += duplicate_count
             
-            # Write filtered entries to temporary file for processing
+            # Write filtered entries to temporary file
             temp_file = f"{file_path}.temp"
             write_filtered_m3u(filtered_entries, temp_file)
-            
-            # Process the filtered file
-            working_entries, file_total = process_single_file(temp_file, args.timeout, args.retries, args.workers, args.quiet)
-            
-            # Clean up temp file
-            os.remove(temp_file)
-            
-            # Update file_total to reflect original count before filtering
-            original_total = len(all_file_entries)
-            file_total = original_total
-        else:
-            working_entries, file_total = process_single_file(file_path, args.timeout, args.retries, args.workers, args.quiet)
+            filtered_files.append(temp_file)
         
-        file_working = len(working_entries)
-        file_failed = file_total - file_working
-        
-        if not args.quiet:
-            print(f"  ✓ Working: {file_working}, ✗ Failed: {file_failed}, Total: {file_total}")
-        
-        all_working_entries.extend(working_entries)
-        total_working += file_working
-        total_failed += file_failed
-        total_entries += file_total
+        files_to_process = filtered_files
     
-    # Sort all entries by source file then by original order for deterministic output
-    all_working_entries.sort(key=lambda x: (x['source_file'], x.get('original_index', 0)))
+    # Process all files with cross-file tvg-id grouping (always enabled)
+    if not args.quiet:
+        print(f"\nProcessing all files with cross-file channel grouping...")
+    
+    all_working_entries, total_entries = process_all_files(files_to_process, args.timeout, args.retries, args.workers, args.quiet)
+    
+    # Clean up temp files if external duplicate filtering was used
+    if args.filter_duplicates:
+        for temp_file in files_to_process:
+            if os.path.exists(temp_file):
+                os.remove(temp_file)
+    
+    total_working = len(all_working_entries)
+    total_failed = total_entries - total_working
     
     # Write consolidated M3U file
     write_filtered_m3u(all_working_entries, output_file)
