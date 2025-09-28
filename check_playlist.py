@@ -31,31 +31,60 @@ def parse_m3u_with_metadata(file_path):
     
     return entries
 
-def check_url(url, timeout=10):
-    """Check if a URL is accessible"""
-    try:
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-        
-        # Set timeout and allow redirects
-        response = requests.head(url, headers=headers, timeout=timeout, allow_redirects=True)
-        
-        if response.status_code == 200:
-            return url, "✓ Working", response.status_code
-        elif response.status_code in [301, 302, 307, 308]:
-            return url, "✓ Working (redirected)", response.status_code
-        else:
-            return url, f"✗ Failed ({response.status_code})", response.status_code
+def check_url(url, timeout=10, max_retries=3):
+    """Check if a URL is accessible with retry logic"""
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+    }
+    
+    last_error = None
+    
+    for attempt in range(max_retries):
+        try:
+            # Set timeout and allow redirects
+            response = requests.head(url, headers=headers, timeout=timeout, allow_redirects=True)
             
-    except requests.exceptions.Timeout:
-        return url, "✗ Timeout", None
-    except requests.exceptions.ConnectionError:
-        return url, "✗ Connection Error", None
-    except requests.exceptions.RequestException as e:
-        return url, f"✗ Error: {str(e)[:50]}", None
-    except Exception as e:
-        return url, f"✗ Unexpected Error: {str(e)[:50]}", None
+            if response.status_code == 200:
+                if attempt > 0:
+                    return url, f"✓ Working (retry {attempt + 1})", response.status_code
+                else:
+                    return url, "✓ Working", response.status_code
+            elif response.status_code in [301, 302, 307, 308]:
+                if attempt > 0:
+                    return url, f"✓ Working (redirected, retry {attempt + 1})", response.status_code
+                else:
+                    return url, "✓ Working (redirected)", response.status_code
+            else:
+                last_error = f"HTTP {response.status_code}"
+                if attempt == max_retries - 1:  # Last attempt
+                    return url, f"✗ Failed ({response.status_code}) after {max_retries} tries", response.status_code
+                
+        except requests.exceptions.Timeout:
+            last_error = "Timeout"
+            if attempt == max_retries - 1:
+                return url, f"✗ Timeout after {max_retries} tries", None
+                
+        except requests.exceptions.ConnectionError:
+            last_error = "Connection Error"
+            if attempt == max_retries - 1:
+                return url, f"✗ Connection Error after {max_retries} tries", None
+                
+        except requests.exceptions.RequestException as e:
+            last_error = f"Request Error: {str(e)[:30]}"
+            if attempt == max_retries - 1:
+                return url, f"✗ Error: {str(e)[:30]} after {max_retries} tries", None
+                
+        except Exception as e:
+            last_error = f"Unexpected Error: {str(e)[:30]}"
+            if attempt == max_retries - 1:
+                return url, f"✗ Unexpected Error: {str(e)[:30]} after {max_retries} tries", None
+        
+        # Brief pause between retries (except for last attempt)
+        if attempt < max_retries - 1:
+            time.sleep(0.5)
+    
+    # Fallback (should not reach here)
+    return url, f"✗ Failed after {max_retries} tries ({last_error})", None
 
 def write_filtered_m3u(working_entries, output_file):
     """Write working entries to a new M3U file"""
@@ -68,21 +97,29 @@ def write_filtered_m3u(working_entries, output_file):
             # Write URL
             f.write(entry['url'] + "\n")
 
-def process_single_file(file_path, timeout=10):
+def process_single_file(file_path, timeout=10, max_retries=3, max_workers=20, quiet=False):
     """Process a single M3U file and return working entries with source info"""
     entries = parse_m3u_with_metadata(file_path)
     working_entries = []
+    completed_count = 0
+    total_count = len(entries)
     
     # Add original index to entries
     for i, entry in enumerate(entries):
         entry['original_index'] = i
     
-    with ThreadPoolExecutor(max_workers=10) as executor:
-        future_to_entry = {executor.submit(check_url, entry['url'], timeout): entry for entry in entries}
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        future_to_entry = {executor.submit(check_url, entry['url'], timeout, max_retries): entry for entry in entries}
         
         for future in as_completed(future_to_entry):
             entry = future_to_entry[future]
             url, status, status_code = future.result()
+            completed_count += 1
+            
+            # Show progress for large files
+            if not quiet and total_count > 50 and completed_count % 20 == 0:
+                progress = (completed_count / total_count) * 100
+                print(f"    Progress: {completed_count}/{total_count} ({progress:.1f}%)")
             
             if "Working" in status:
                 # Add source file info to entry
@@ -97,8 +134,9 @@ def main():
     parser = argparse.ArgumentParser(description='Check M3U playlist URLs and create filtered playlist')
     parser.add_argument('input_path', help='Input M3U file or folder containing M3U files')
     parser.add_argument('-o', '--output', help='Output file for working entries (default: main_working.m3u)')
-    parser.add_argument('-w', '--workers', type=int, default=10, help='Number of worker threads (default: 10)')
+    parser.add_argument('-w', '--workers', type=int, default=20, help='Number of worker threads (default: 20)')
     parser.add_argument('-t', '--timeout', type=int, default=10, help='Request timeout in seconds (default: 10)')
+    parser.add_argument('-r', '--retries', type=int, default=3, help='Max retries for failed URLs (default: 3)')
     parser.add_argument('-q', '--quiet', action='store_true', help='Suppress detailed output')
     
     args = parser.parse_args()
@@ -152,7 +190,7 @@ def main():
         if not args.quiet:
             print(f"\nProcessing {os.path.basename(file_path)}...")
         
-        working_entries, file_total = process_single_file(file_path, args.timeout)
+        working_entries, file_total = process_single_file(file_path, args.timeout, args.retries, args.workers, args.quiet)
         
         file_working = len(working_entries)
         file_failed = file_total - file_working
