@@ -102,6 +102,25 @@ def get_source_prefix(filename):
     base_name = filename.split('.')[0]
     return base_name.capitalize()
 
+def sanitize_group_name(group_name):
+    """Sanitize group-title for Android app compatibility"""
+    if not group_name:
+        return group_name
+    
+    import re
+    
+    # Replace problematic punctuation with spaces, preserve Unicode letters/digits
+    # Keep basic punctuation that's commonly supported: space, dash, underscore
+    sanitized = re.sub(r'[^\w\s\-_]', ' ', group_name, flags=re.UNICODE)
+    
+    # Clean up multiple consecutive spaces
+    sanitized = re.sub(r'\s+', ' ', sanitized)
+    
+    # Strip leading/trailing whitespace
+    sanitized = sanitized.strip()
+    
+    return sanitized
+
 def add_source_prefix_to_group_title(metadata_lines, source_prefix):
     """Add source prefix to group-title in metadata lines"""
     modified_lines = []
@@ -112,12 +131,19 @@ def add_source_prefix_to_group_title(metadata_lines, source_prefix):
             import re
             def replace_group_title(match):
                 current_group = match.group(1)
+                
+                # Sanitize the group name for Android compatibility
+                if current_group:
+                    current_group = sanitize_group_name(current_group)
+                
                 if current_group and not current_group.startswith(source_prefix):
-                    return f'group-title="{source_prefix} {current_group}"'
+                    sanitized_group = f"{source_prefix} {current_group}"
                 elif not current_group:
-                    return f'group-title="{source_prefix}"'
+                    sanitized_group = source_prefix
                 else:
-                    return match.group(0)  # Already has prefix
+                    sanitized_group = current_group  # Already has prefix
+                
+                return f'group-title="{sanitized_group}"'
             
             modified_line = re.sub(r'group-title="([^"]*)"', replace_group_title, line)
             modified_lines.append(modified_line)
