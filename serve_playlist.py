@@ -38,13 +38,26 @@ def get_local_ip():
         return "localhost"
 
 def main():
-    PORT = 8081
+    import argparse
     
-    # Check if M3U file exists
-    m3u_file = "pk_working.m3u"
-    if not os.path.exists(m3u_file):
-        print(f"Error: {m3u_file} not found!")
-        print("Please run check_playlist.py first to create the filtered playlist.")
+    parser = argparse.ArgumentParser(description='Serve M3U playlist files over HTTP')
+    parser.add_argument('-p', '--port', type=int, default=8081, help='Port to serve on (default: 8081)')
+    parser.add_argument('-f', '--file', help='Specific M3U file to highlight (optional)')
+    
+    args = parser.parse_args()
+    PORT = args.port
+    
+    # Find available M3U files
+    m3u_files = [f for f in os.listdir(".") if f.endswith((".m3u", ".m3u8"))]
+    
+    if not m3u_files:
+        print("Error: No M3U files found in current directory!")
+        print("Please run 'make all' or check_playlist.py first to create filtered playlists.")
+        sys.exit(1)
+    
+    # If specific file requested, check it exists
+    if args.file and not os.path.exists(args.file):
+        print(f"Error: Specified file '{args.file}' not found!")
         sys.exit(1)
     
     # Get local IP address
@@ -61,13 +74,13 @@ def main():
             print(f"🔗 Port: {PORT}")
             print()
             print("📺 TV/Player URLs:")
-            print(f"   • Local: http://localhost:{PORT}/{m3u_file}")
-            print(f"   • Network: http://{local_ip}:{PORT}/{m3u_file}")
+            if args.file:
+                print(f"   🎯 Featured: http://{local_ip}:{PORT}/{args.file}")
             print()
             print("📋 Available files:")
-            for file in os.listdir("."):
-                if file.endswith((".m3u", ".m3u8")):
-                    print(f"   • http://{local_ip}:{PORT}/{file}")
+            for file in sorted(m3u_files):
+                marker = "🎯 " if args.file == file else "   • "
+                print(f"{marker}http://{local_ip}:{PORT}/{file}")
             print()
             print("🛑 Press Ctrl+C to stop the server")
             print("=" * 60)
