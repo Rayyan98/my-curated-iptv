@@ -68,84 +68,126 @@ def write_filtered_m3u(working_entries, output_file):
             # Write URL
             f.write(entry['url'] + "\n")
 
+def process_single_file(file_path, timeout=10):
+    """Process a single M3U file and return working entries with source info"""
+    entries = parse_m3u_with_metadata(file_path)
+    working_entries = []
+    
+    # Add original index to entries
+    for i, entry in enumerate(entries):
+        entry['original_index'] = i
+    
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        future_to_entry = {executor.submit(check_url, entry['url'], timeout): entry for entry in entries}
+        
+        for future in as_completed(future_to_entry):
+            entry = future_to_entry[future]
+            url, status, status_code = future.result()
+            
+            if "Working" in status:
+                # Add source file info to entry
+                entry['source_file'] = os.path.basename(file_path)
+                working_entries.append(entry)
+    
+    # Sort by original order
+    working_entries.sort(key=lambda x: x['original_index'])
+    return working_entries, len(entries)
+
 def main():
     parser = argparse.ArgumentParser(description='Check M3U playlist URLs and create filtered playlist')
-    parser.add_argument('input_file', help='Input M3U playlist file')
-    parser.add_argument('-o', '--output', help='Output file for working entries (default: <input>_working.m3u)')
+    parser.add_argument('input_path', help='Input M3U file or folder containing M3U files')
+    parser.add_argument('-o', '--output', help='Output file for working entries (default: main_working.m3u)')
     parser.add_argument('-w', '--workers', type=int, default=10, help='Number of worker threads (default: 10)')
     parser.add_argument('-t', '--timeout', type=int, default=10, help='Request timeout in seconds (default: 10)')
     parser.add_argument('-q', '--quiet', action='store_true', help='Suppress detailed output')
     
     args = parser.parse_args()
     
-    # Validate input file
-    if not os.path.exists(args.input_file):
-        print(f"Error: Input file '{args.input_file}' not found!")
+    # Validate input path
+    if not os.path.exists(args.input_path):
+        print(f"Error: Input path '{args.input_path}' not found!")
         sys.exit(1)
     
-    # Generate output filename if not provided
-    if args.output:
-        output_file = args.output
+    # Determine if input is file or folder
+    if os.path.isfile(args.input_path):
+        # Single file mode (backward compatibility)
+        input_files = [args.input_path]
+        if args.output:
+            output_file = args.output
+        else:
+            base_name = os.path.splitext(args.input_path)[0]
+            output_file = f"{base_name}_working.m3u"
     else:
-        base_name = os.path.splitext(args.input_file)[0]
-        output_file = f"{base_name}_working.m3u"
+        # Folder mode - find all M3U files
+        input_files = []
+        for file in os.listdir(args.input_path):
+            if file.endswith(('.m3u', '.m3u8')):
+                input_files.append(os.path.join(args.input_path, file))
+        
+        if not input_files:
+            print(f"Error: No M3U files found in folder '{args.input_path}'!")
+            sys.exit(1)
+        
+        input_files.sort()  # Sort for deterministic order
+        
+        if args.output:
+            output_file = args.output
+        else:
+            output_file = "main_working.m3u"
     
     if not args.quiet:
-        print(f"Checking URLs in {args.input_file}...")
+        if len(input_files) == 1:
+            print(f"Checking URLs in {input_files[0]}...")
+        else:
+            print(f"Checking URLs in {len(input_files)} M3U files from {args.input_path}...")
         print("=" * 80)
     
-    # Parse M3U file with metadata
-    entries = parse_m3u_with_metadata(args.input_file)
+    all_working_entries = []
+    total_working = 0
+    total_failed = 0
+    total_entries = 0
     
-    if not args.quiet:
-        print(f"Found {len(entries)} entries to check\n")
-    
-    working_count = 0
-    failed_count = 0
-    working_entries = []
-    
-    # Check URLs with threading for faster execution
-    with ThreadPoolExecutor(max_workers=args.workers) as executor:
-        # Submit all tasks
-        future_to_entry = {executor.submit(check_url, entry['url'], args.timeout): entry for entry in entries}
+    # Process each file
+    for file_path in input_files:
+        if not args.quiet:
+            print(f"\nProcessing {os.path.basename(file_path)}...")
         
-        # Process results as they complete
-        for future in as_completed(future_to_entry):
-            entry = future_to_entry[future]
-            url, status, status_code = future.result()
-            
-            # Parse domain from URL for cleaner display
-            try:
-                domain = urlparse(url).netloc
-            except:
-                domain = url[:50]
-            
-            if not args.quiet:
-                print(f"{status:<25} | {domain}")
-            
-            if "Working" in status:
-                working_count += 1
-                working_entries.append(entry)
-            else:
-                failed_count += 1
+        working_entries, file_total = process_single_file(file_path, args.timeout)
+        
+        file_working = len(working_entries)
+        file_failed = file_total - file_working
+        
+        if not args.quiet:
+            print(f"  ✓ Working: {file_working}, ✗ Failed: {file_failed}, Total: {file_total}")
+        
+        all_working_entries.extend(working_entries)
+        total_working += file_working
+        total_failed += file_failed
+        total_entries += file_total
     
-    # Sort working entries by original order for deterministic output
-    working_entries.sort(key=lambda x: entries.index(x))
+    # Sort all entries by source file then by original order for deterministic output
+    all_working_entries.sort(key=lambda x: (x['source_file'], x.get('original_index', 0)))
     
-    # Write filtered M3U file
-    write_filtered_m3u(working_entries, output_file)
+    # Write consolidated M3U file
+    write_filtered_m3u(all_working_entries, output_file)
     
     if not args.quiet:
         print("\n" + "=" * 80)
     
-    print(f"Summary for {args.input_file}:")
-    print(f"✓ Working URLs: {working_count}")
-    print(f"✗ Failed URLs: {failed_count}")
-    print(f"Total URLs: {len(entries)}")
-    print(f"Success Rate: {(working_count/len(entries)*100):.1f}%")
-    print(f"Filtered playlist written to: {output_file}")
+    if len(input_files) == 1:
+        print(f"Summary for {input_files[0]}:")
+    else:
+        print(f"Summary for {len(input_files)} files:")
+        for file_path in input_files:
+            print(f"  • {os.path.basename(file_path)}")
     
-    return working_count
+    print(f"✓ Working URLs: {total_working}")
+    print(f"✗ Failed URLs: {total_failed}")
+    print(f"Total URLs: {total_entries}")
+    print(f"Success Rate: {(total_working/total_entries*100):.1f}%")
+    print(f"Consolidated playlist written to: {output_file}")
+    
+    return total_working
 
 if __name__ == "__main__":
     main()

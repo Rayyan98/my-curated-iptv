@@ -1,73 +1,56 @@
 # Makefile for IPTV playlist processing
-# Generates working playlists from source M3U files
+# Generates consolidated working playlist from source M3U files
 
 # Configuration
 PYTHON = python3
 VENV_DIR = venv
 CHECKER_SCRIPT = check_playlist.py
-SERVER_SCRIPT = serve_playlist.py
 
-# Input files
-PK_INPUT = pk.m3u
-IN_INPUT = in.m3u
-
-# Output files
-PK_OUTPUT = pk_working.m3u
-IN_OUTPUT = in_working.m3u
+# Input/Output
+MAIN_DIR = main
+MAIN_OUTPUT = main_working.m3u
+INDIVIDUAL_OUTPUTS = pk_working.m3u in_working.m3u
 
 # Virtual environment
 VENV_ACTIVATE = $(VENV_DIR)/bin/activate
 
-# Default target
+# Default target - consolidated approach
 .PHONY: all
-all: $(PK_OUTPUT) $(IN_OUTPUT)
+all: $(MAIN_OUTPUT)
 
 # Create virtual environment and install dependencies
 $(VENV_ACTIVATE):
 	$(PYTHON) -m venv $(VENV_DIR)
 	. $(VENV_ACTIVATE) && pip install requests
 
-# Check Pakistani channels
-$(PK_OUTPUT): $(PK_INPUT) $(CHECKER_SCRIPT) $(VENV_ACTIVATE)
-	@echo "Processing Pakistani channels..."
-	. $(VENV_ACTIVATE) && $(PYTHON) $(CHECKER_SCRIPT) $(PK_INPUT) --quiet
-	@echo "Pakistani channels processed: $(PK_OUTPUT)"
+# Generate consolidated working playlist from main folder
+$(MAIN_OUTPUT): $(MAIN_DIR)/*.m3u $(CHECKER_SCRIPT) $(VENV_ACTIVATE)
+	@echo "Processing all playlists in $(MAIN_DIR) folder..."
+	. $(VENV_ACTIVATE) && $(PYTHON) $(CHECKER_SCRIPT) $(MAIN_DIR) --quiet
+	@echo "Consolidated playlist generated: $(MAIN_OUTPUT)"
 
-# Check Indian channels
-$(IN_OUTPUT): $(IN_INPUT) $(CHECKER_SCRIPT) $(VENV_ACTIVATE)
-	@echo "Processing Indian channels..."
-	. $(VENV_ACTIVATE) && $(PYTHON) $(CHECKER_SCRIPT) $(IN_INPUT) --quiet
-	@echo "Indian channels processed: $(IN_OUTPUT)"
+# Process with verbose output
+.PHONY: verbose
+verbose: $(VENV_ACTIVATE)
+	@echo "Processing all playlists (verbose)..."
+	. $(VENV_ACTIVATE) && $(PYTHON) $(CHECKER_SCRIPT) $(MAIN_DIR)
 
-# Process Pakistani channels with verbose output
-.PHONY: pk-verbose
-pk-verbose: $(VENV_ACTIVATE)
-	@echo "Processing Pakistani channels (verbose)..."
-	. $(VENV_ACTIVATE) && $(PYTHON) $(CHECKER_SCRIPT) $(PK_INPUT)
+# Legacy targets for individual files (backward compatibility)
+.PHONY: pk-only
+pk-only: $(VENV_ACTIVATE)
+	@echo "Processing Pakistani channels only..."
+	. $(VENV_ACTIVATE) && $(PYTHON) $(CHECKER_SCRIPT) $(MAIN_DIR)/pk.m3u
 
-# Process Indian channels with verbose output
-.PHONY: in-verbose
-in-verbose: $(VENV_ACTIVATE)
-	@echo "Processing Indian channels (verbose)..."
-	. $(VENV_ACTIVATE) && $(PYTHON) $(CHECKER_SCRIPT) $(IN_INPUT)
+.PHONY: in-only  
+in-only: $(VENV_ACTIVATE)
+	@echo "Processing Indian channels only..."
+	. $(VENV_ACTIVATE) && $(PYTHON) $(CHECKER_SCRIPT) $(MAIN_DIR)/in.m3u
 
-# Start HTTP server for Pakistani playlist
-.PHONY: serve-pk
-serve-pk: $(PK_OUTPUT)
-	@echo "Starting server for Pakistani channels..."
-	. $(VENV_ACTIVATE) && $(PYTHON) $(SERVER_SCRIPT)
-
-# Start HTTP server for Indian playlist
-.PHONY: serve-in
-serve-in: $(IN_OUTPUT)
-	@echo "Starting server for Indian channels..."
-	@echo "Note: Update serve_playlist.py to specify $(IN_OUTPUT) file"
-	. $(VENV_ACTIVATE) && $(PYTHON) $(SERVER_SCRIPT)
 
 # Clean generated files
 .PHONY: clean
 clean:
-	rm -f $(PK_OUTPUT) $(IN_OUTPUT)
+	rm -f $(MAIN_OUTPUT) $(INDIVIDUAL_OUTPUTS)
 	@echo "Cleaned generated working playlists"
 
 # Clean everything including virtual environment
@@ -80,23 +63,24 @@ clean-all: clean
 .PHONY: help
 help:
 	@echo "Available targets:"
-	@echo "  all          - Process both Pakistani and Indian playlists (default)"
-	@echo "  $(PK_OUTPUT)     - Process Pakistani channels only"
-	@echo "  $(IN_OUTPUT)     - Process Indian channels only"
-	@echo "  pk-verbose   - Process Pakistani channels with verbose output"
-	@echo "  in-verbose   - Process Indian channels with verbose output"
-	@echo "  serve-pk     - Start HTTP server for Pakistani playlist"
-	@echo "  serve-in     - Start HTTP server for Indian playlist"
+	@echo "  all          - Generate consolidated playlist from main folder (default)"
+	@echo "  $(MAIN_OUTPUT)   - Generate consolidated playlist"
+	@echo "  verbose      - Process with verbose output"
+	@echo "  pk-only      - Process Pakistani channels only"
+	@echo "  in-only      - Process Indian channels only"
 	@echo "  clean        - Remove generated working playlists"
 	@echo "  clean-all    - Remove everything including virtual environment"
 	@echo "  help         - Show this help message"
 	@echo ""
-	@echo "Input files: $(PK_INPUT), $(IN_INPUT)"
-	@echo "Output files: $(PK_OUTPUT), $(IN_OUTPUT)"
+	@echo "Input folder: $(MAIN_DIR)/"
+	@echo "Output file: $(MAIN_OUTPUT)"
 
-# Check if input files exist
+# Check if input folder exists
 .PHONY: check-inputs
 check-inputs:
-	@if [ ! -f $(PK_INPUT) ]; then echo "Warning: $(PK_INPUT) not found"; fi
-	@if [ ! -f $(IN_INPUT) ]; then echo "Warning: $(IN_INPUT) not found"; fi
-	@if [ -f $(PK_INPUT) ] && [ -f $(IN_INPUT) ]; then echo "All input files found"; fi
+	@if [ ! -d $(MAIN_DIR) ]; then echo "Warning: $(MAIN_DIR) folder not found"; fi
+	@if [ -d $(MAIN_DIR) ]; then \
+		echo "Input folder found: $(MAIN_DIR)/"; \
+		echo "M3U files:"; \
+		ls -1 $(MAIN_DIR)/*.m3u 2>/dev/null || echo "  No M3U files found"; \
+	fi
